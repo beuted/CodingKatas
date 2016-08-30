@@ -115,6 +115,21 @@ namespace CodingKatas
 
             Check.That(game.Score()).IsEqualTo(22);
         }
+
+        [Test]
+        public void Should_return_score_when_nothing_at_the_end()
+        {
+            var game = new BowlingGameV2();
+            for (var i = 0; i < 18; i++)
+            {
+                game.Roll(0);
+            }
+
+            game.Roll(2);
+            game.Roll(2);
+
+            Check.That(game.Score()).IsEqualTo(4);
+        }
     }
 
     public class BowlingGameV2
@@ -145,28 +160,15 @@ namespace CodingKatas
 
                 if (_frames[i].IsStrike())
                 {
-                    if (IsFinalFrame(i))
-                    {
-                        score += _frames[i].Roll2 + _frames[i].Roll3;
-                        break;
-                    }
-
-                    score += _frames[i + 1].Roll1;
-
-                    if (_frames[i + 1].IsStrike())
-                        score += _frames[i + 2].Roll1;
-                    else
-                        score += _frames[i + 1].Roll2;
+                    score += StrikeBonus(i);
                 }
                 else if (_frames[i].IsSpare())
-                    if (IsFinalFrame(i))
-                        score += _frames[i].Roll3;
-                    else
-                        score += _frames[i + 1].Roll1;
+                {
+                    score += SpareBonus(i);
+                }
             }
 
             return score;
-
         }
 
         public void Roll(int pinsKnocked)
@@ -178,9 +180,9 @@ namespace CodingKatas
             else if (_frames[_currentFrame].Roll2 == -1)
             {
                 _frames[_currentFrame].Roll2 = pinsKnocked;
-                if (IsFinalFrame(_currentFrame)) _currentFrame++;
+                if (!IsFinalFrame(_currentFrame)) _currentFrame++;
             }
-            else
+            else if (IsFinalFrame(_currentFrame))
             {
                 _frames[_currentFrame].Roll3 = pinsKnocked;
             }
@@ -189,6 +191,26 @@ namespace CodingKatas
         private static bool IsFinalFrame(int frame)
         {
             return frame == 9;
+        }
+
+        private int SpareBonus(int i)
+        {
+            return IsFinalFrame(i) ? _frames[i].Roll3 : _frames[i + 1].Roll1;
+        }
+
+        private int StrikeBonus(int i)
+        {
+            if (IsFinalFrame(i))
+                return _frames[i].Roll3;
+
+            var score = _frames[i + 1].Roll1;
+
+            if (_frames[i + 1].IsStrike())
+                score += _frames[i + 2].Roll1;
+            else
+                score += _frames[i + 1].Roll2;
+
+            return score;
         }
     }
 
@@ -210,7 +232,12 @@ namespace CodingKatas
 
         public bool IsComplete(int currentFrame)
         {
-            return Roll1 != -1 && Roll2 != -1 && (currentFrame != 9 || Roll3 != -1);
+            return Roll1 != -1 && Roll2 != -1 && (currentFrame != 9 || IsCompleteLastFrame());
+        }
+
+        private bool IsCompleteLastFrame()
+        {
+            return (!IsSpare() && !IsStrike()) || Roll3 != -1;
         }
     }
 }
